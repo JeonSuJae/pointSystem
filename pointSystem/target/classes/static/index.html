@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Point System</title>
+    <script type="text/javascript">
+        window.onload = function() {
+            getMinMax();
+            getAllPoint();
+            getSavePoint();
+            savePointBtnClick();
+            cancelSavePoint();
+            usePoint();
+            cancelUsePoint();
+        }
+
+        let min = 0;
+        let max = 0;
+        function getMinMax() {
+            let httpRequest = new XMLHttpRequest();
+            httpRequest.onreadystatechange = () => {
+                if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                    if (httpRequest.status === 200) {
+                        var result = httpRequest.response;
+                        min = result.result[0];
+                        max = result.result[1];
+                    } else {
+                        alert("Init Error!");
+                    }
+                }
+            };
+            httpRequest.open('GET', '/minMax');
+            httpRequest.responseType = "json";
+            httpRequest.send();
+        }
+
+        function getAllPoint() {
+            let httpRequest = new XMLHttpRequest();
+            httpRequest.onreadystatechange = () => {
+                if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                    if (httpRequest.status === 200) {
+                        let result = httpRequest.response;
+                        let remainPoint = 0;
+                        for(let i =0; i< result.result.length; i++) {
+                            remainPoint = remainPoint + result.result[i].point;
+                        }
+                        document.getElementById("remainPoint").value = remainPoint;
+                    } else {
+                        alert("Init Error!");
+                    }
+                }
+            };
+            httpRequest.open('GET', '/point');
+            httpRequest.responseType = "json";
+            httpRequest.send();
+        }
+
+        function getSavePoint() {
+            let httpRequest = new XMLHttpRequest();
+            httpRequest.onreadystatechange = () => {
+                if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                    if (httpRequest.status === 200) {
+                        var result = httpRequest.response;
+                        let select = document.getElementById("cancelSaveSelect");
+                        for(let i =0; i< result.result.length; i++) {
+                            select.options[i] = new Option(result.result[i].pointKey + " - " + result.result[i].point);
+                        }
+                    } else {
+                        alert("Init Error!");
+                    }
+                }
+            };
+            httpRequest.open('GET', '/save');
+            httpRequest.responseType = "json";
+            httpRequest.send();
+        }
+
+        function savePointBtnClick() {
+            var httpRequest;
+            document.getElementById("saveBtn").addEventListener('click', () => {
+                let savePoint = document.getElementById("savePoint").value;
+                let manual = document.getElementById("savePointManualCheck").checked;
+                let pointEndDate = document.getElementById("pointEndDate").value;
+                if(isNaN(savePoint)) {alert("숫자만 입력해 주세요."); return;}
+                if(savePoint <= min || savePoint >= max || savePoint === '') {alert("1회 적립가능 포인트는 " + min + "포인트 이상, " + max + "만포인트 이하입니다."); return;}
+                if(isNaN(pointEndDate)) {alert("숫자만 입력해 주세요."); return;}
+                if(pointEndDate < 0 || pointEndDate > 365 * 5 || pointEndDate === '') {alert("만료일은 최소 1일부터 5년 미만까지 입력가능합니다."); return;}
+                httpRequest = new XMLHttpRequest();
+                httpRequest.onreadystatechange = () => {
+                    if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                        if (httpRequest.status === 200) {
+                            var result = httpRequest.response;
+                            if(result.result > 0) {
+                                alert("정상 적립 되었습니다.");
+                                location.reload(true);
+                            } else {
+                                alert("적립 오류!");
+                            }
+                        } else {
+                            alert('Request Error!');
+                        }
+                    }
+                };
+                httpRequest.open('POST', '/save?savePoint=' + savePoint + '&manual=' + manual + '&pointEndDate=' + pointEndDate);
+                httpRequest.responseType = "json";
+                httpRequest.send();
+            });
+        }
+
+        function cancelSavePoint() {
+            var httpRequest;
+            document.getElementById("cancelSaveBtn").addEventListener('click', () => {
+                let pointKeyStr = document.getElementById("cancelSaveSelect").value;
+                let pointKey = pointKeyStr.split("-");
+                pointKey[0] = pointKey[0].toString().trim();
+                httpRequest = new XMLHttpRequest();
+                httpRequest.onreadystatechange = () => {
+                    if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                        if (httpRequest.status === 200) {
+                            var result = httpRequest.response;
+                            if(result.result > 0) {
+                                alert("정상 적립 취소 되었습니다.");
+                                location.reload(true);
+                            } else {
+                                alert("적립 취소 오류!");
+                            }
+                        } else {
+                            alert('Request Error!');
+                        }
+                    }
+                };
+                httpRequest.open('DELETE', '/save?pointKey=' + pointKey[0]);
+                httpRequest.responseType = "json";
+                httpRequest.send();
+            });
+        }
+
+        function usePoint() {
+            var httpRequest;
+            document.getElementById("useBtn").addEventListener('click', () => {
+                let usePoint = document.getElementById("usePoint").value;
+                let remainPoint = document.getElementById("remainPoint").value;
+                if(Number(remainPoint) < Number(usePoint)) {alert("총 포인트보다 많은 포인트를 사용 할 수 없습니다."); return;}
+                if(isNaN(usePoint)) {alert("숫자만 입력해 주세요."); return;}
+                if(usePoint < 0 || usePoint === '') {alert("최소 1포인트 이상 사용해야 합니다."); return;}
+                httpRequest = new XMLHttpRequest();
+                httpRequest.onreadystatechange = () => {
+                    if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                        if (httpRequest.status === 200) {
+                            var result = httpRequest.response;
+                            if(result.result > 0) {
+                                alert("포인트 사용이 정상 처리 되었습니다.");
+                                location.reload(true);
+                            } else {
+                                alert("포인트 사용 오류!");
+                            }
+                        } else {
+                            alert('Request Error!');
+                        }
+                    }
+                };
+                httpRequest.open('POST', '/use?usePoint=' + usePoint);
+                httpRequest.responseType = "json";
+                httpRequest.send();
+            });
+        }
+
+        function cancelUsePoint() {
+            var httpRequest;
+            document.getElementById("cancelUseBtn").addEventListener('click', () => {
+                let usePoint = document.getElementById("cancelUsePoint").value;
+                if(isNaN(usePoint)) {alert("숫자만 입력해 주세요."); return;}
+                if(usePoint < 0 || usePoint === '') {alert("최소 1포인트 이상 사용 취소해야 합니다."); return;}
+                httpRequest = new XMLHttpRequest();
+                httpRequest.onreadystatechange = () => {
+                    if (httpRequest.readyState === XMLHttpRequest.DONE) {
+                        if (httpRequest.status === 200) {
+                            var result = httpRequest.response;
+                            if(result.result > 0) {
+                                alert("포인트 사용 취소가 정상 처리 되었습니다.");
+                                location.reload(true);
+                            } else {
+                                alert("취소 할 포인트가 없습니다!");
+                            }
+                        } else {
+                            alert('Request Error!');
+                        }
+                    }
+                };
+                httpRequest.open('PUT', '/use?cancelPoint=' + usePoint);
+                httpRequest.responseType = "json";
+                httpRequest.send();
+            });
+        }
+    </script>
+    <style type="text/css"> span { color: blue } </style>
+</head>
+<h1>무료 포인트 시스템</h1>
+총 포인트 : <input type="text" id="remainPoint"></input><br><br>
+a.적립<br>
+적립액 : <input type="text" id="savePoint"></input>
+ 수기 지급 <input id="savePointManualCheck" type="checkbox"></input>
+ 만료일 : <input type="text" value="365" id="pointEndDate"></input>일
+<button id="saveBtn">적립</button>
+<br>
+<br>
+<!-- 응답 받은 name 및 age 데이터를 추가해서 작성할 간단한 결과 텍스트 -->
+b.적립 취소<br> 취소 적립 (pointKey - point): <select id="cancelSaveSelect"></select> <button id="cancelSaveBtn">적립 취소</button>
+<br>
+<br>
+c.사용<br>
+사용 포인트 : <input type="text" id="usePoint"></input>
+<button id="useBtn">포인트 사용</button>
+<br>
+<br>
+d.사용 취소<br>
+사용 취소 포인트 : <input type="text" id="cancelUsePoint"></input>
+<button id="cancelUseBtn">포인트 사용 취소</button>
+</body>
+</html>

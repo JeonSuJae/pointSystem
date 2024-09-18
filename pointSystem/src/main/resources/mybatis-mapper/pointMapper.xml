@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.pointsystem.repository.pointMapper">
+
+    <select id="selectPoint" resultType="com.example.pointsystem.model.Point">
+        SELECT POINT_KEY, POINT, MANUAL, END_DATE, USE_YN, USER_KEY
+        FROM POINT
+        WHERE USE_YN = 'N'
+        AND POINT > 0
+        AND END_DATE >= NOW();
+    </select>
+
+    <select id="selectAllPoint" resultType="com.example.pointsystem.model.Point">
+        SELECT POINT_KEY, POINT, MANUAL, END_DATE, USE_YN, USER_KEY
+        FROM POINT
+        WHERE POINT > 0
+          AND END_DATE >= NOW();
+    </select>
+
+    <select id="selectUsePoint" resultType="com.example.pointsystem.model.Point">
+        SELECT POINT_KEY, POINT, MANUAL, END_DATE, USE_YN, USER_KEY
+        FROM POINT
+        WHERE END_DATE >= NOW()
+        AND POINT > 0
+        ORDER BY MANUAL DESC,
+                 END_DATE ASC;
+    </select>
+
+    <insert id="insertPointSave">
+        INSERT INTO POINT(POINT, MANUAL, END_DATE, USE_YN, USER_KEY)
+        VALUES(#{point}, #{manual}, #{endDate}, 'N', '1');
+    </insert>
+
+    <delete id="deleteSavePoint">
+        DELETE
+        FROM POINT
+        WHERE POINT_KEY = #{pointKey};
+    </delete>
+
+    <update id="updatePoint">
+        UPDATE POINT
+        SET POINT = #{point},
+            USE_YN = 'Y'
+        WHERE POINT_KEY = #{pointKey};
+    </update>
+
+    <insert id="insertUseHistory">
+        INSERT INTO USEHISTORY(ORDER_NUM, POINT, POINT_KEY)
+        VALUES(#{orderNum}, #{point}, #{pointKey})
+    </insert>
+
+    <select id="countOrderNum" resultType="int">
+        SELECT IFNULL(MAX(ORDER_NUM), 0)
+        FROM USEHISTORY;
+    </select>
+
+    <select id="selectUesHistory" resultType="com.example.pointsystem.model.UseHistory">
+        SELECT HISTORY_NUM, ORDER_NUM, POINT, POINT_KEY
+        FROM USEHISTORY
+        WHERE POINT > 0
+        ORDER BY ORDER_NUM DESC;
+    </select>
+
+    <select id="selectLastPoint" resultType="com.example.pointsystem.model.Point">
+        SELECT POINT_KEY, POINT, MANUAL, END_DATE, USE_YN, USER_KEY
+        FROM POINT
+        WHERE POINT_KEY = #{pointKey}
+    </select>
+
+    <update id="updateUseHistory">
+        UPDATE USEHISTORY
+        SET POINT = #{point}
+        WHERE HISTORY_NUM = #{historyNum};
+    </update>
+
+    <delete id="deletePointHistory">
+        DELETE
+        FROM USEHISTORY
+        WHERE POINT_KEY = #{pointKey}
+    </delete>
+
+</mapper>
